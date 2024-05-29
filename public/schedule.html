@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(90deg, rgba(23, 67, 92, 0.53), #103c9e);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-bottom: 50px;
+        }
+        .container {
+            padding-top: 50px;
+            max-width: 1000px;
+            margin: auto;
+        }
+        .table {
+            background-color: rgba(0, 0, 255, 0.3);
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: #fff;
+            margin-bottom: 30px;
+        }
+        .table th,
+        .table td {
+            border: none;
+            padding: 15px;
+            vertical-align: middle;
+        }
+        .table thead th {
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 15px 15px 0 0;
+            font-weight: bold;
+        }
+        .table tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 class="mb-4 text-center">Schedule</h2>
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Subject</th>
+            <th>Room</th>
+            <th>Time</th>
+            <th>Day</th>
+            <th>Teacher</th> <!-- Добавляем колонку для учителя -->
+        </tr>
+        </thead>
+        <tbody id="scheduleTableBody">
+        <!-- Данные будут загружены с помощью JavaScript -->
+        </tbody>
+    </table>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/api/schedule')
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('scheduleTableBody');
+                data.forEach(subject => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                            <td>${subject.subject}</td>
+                            <td>${subject.room}</td>
+                            <td>${subject.time}</td>
+                            <td>${subject.day}</td>
+                            <td>${subject.teacher}</td> <!-- Добавляем значение учителя -->
+                        `;
+                    tableBody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching schedule:', error);
+            });
+    });
+</script>
+</body>
+</html>

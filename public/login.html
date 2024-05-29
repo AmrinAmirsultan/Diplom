@@ -5,11 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
 
+    <!-- Подключаем стили Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
+    <!-- Подключаем иконки Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     <style>
+        /* Стили для страницы */
         body {
             background-color: #035c63;
             display: flex;
@@ -28,11 +30,11 @@
         }
         .form-control {
             border-radius: 8px;
-            border: 2px solid #04484a; /* Добавляем границу */
-            transition: border-color 0.5s ease; /* Анимация перехода цвета границы */
+            border: 2px solid #04484a; /* Цвет рамки */
+            transition: border-color 0.5s ease; /* Анимация перехода цвета рамки */
         }
         .form-control:focus {
-            border-color: #3753d5; /* Цвет границы при фокусе */
+            border-color: #3753d5; /* Цвет рамки при фокусе */
         }
         .btn-primary {
             border-radius: 8px;
@@ -80,12 +82,15 @@
     </style>
 </head>
 <body>
+<!-- Контейнер для центрирования содержимого -->
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
+                    <!-- Заголовок формы -->
                     <h2 class="card-title text-center">Login</h2>
+                    <!-- Форма для ввода логина и пароля -->
                     <form id="loginForm">
                         <div class="mb-3">
                             <label for="username" class="form-label">Username:</label>
@@ -95,10 +100,12 @@
                             <label for="password" class="form-label">Password:</label>
                             <input type="password" class="form-control" id="password" name="password">
                         </div>
+                        <!-- Кнопка для отправки формы -->
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary fw-bold">Submit</button>
                         </div>
                     </form>
+                    <!-- Сообщение об ошибке -->
                     <div id="error" class="text-danger mt-3 text-center"></div>
                 </div>
             </div>
@@ -106,10 +113,12 @@
     </div>
 </div>
 
+<!-- Подвал с контактной информацией -->
 <footer class="footer">
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
+                <!-- Текст со ссылками на социальные сети -->
                 <p class="social-text">Найдите нас в социальных сетях:</p>
                 <a href="https://wa.me/номер_телефона" class="footer-icons"><i class="fab fa-whatsapp"></i></a>
                 <a href="https://t.me/ваш_телеграм" class="footer-icons"><i class="fab fa-telegram"></i></a>
@@ -119,33 +128,42 @@
     </div>
 </footer>
 
-<!-- Подключаем Bootstrap JavaScript (необходим для работы компонентов) -->
+<!-- Подключаем JavaScript Bootstrap (необходим для работы компонентов) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- JavaScript для отправки данных формы на сервер -->
 <script>
+    // Добавляем слушателя события на форму
     document.getElementById("loginForm").addEventListener("submit", async function(event) {
+        // Предотвращаем отправку формы по умолчанию
         event.preventDefault();
 
+        // Получаем значения логина и пароля из формы
         const username = document.getElementById("username").value;
         const password = document.getElementById("password").value;
 
         try {
+            // Отправляем запрос на сервер для аутентификации пользователя
             const response = await fetch("/auth/login", {
-                method: "POST",
+                method: "POST", // Используем метод POST
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json" // Указываем тип содержимого
                 },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username, password }) // Преобразуем данные в формат JSON и отправляем
             });
 
+            // Получаем данные из ответа сервера
             const data = await response.json();
 
+            // Если ответ от сервера не успешный, выбрасываем ошибку с сообщением
             if (!response.ok) {
                 throw new Error(data.message);
             }
 
+            // Перенаправляем пользователя на страницу приветствия после успешной аутентификации
             window.location.href = "/welcome";
         } catch (error) {
+            // Выводим сообщение об ошибке в случае неудачной аутентификации
             document.getElementById("error").innerText = error.message;
         }
     });

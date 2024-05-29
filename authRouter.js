@@ -23,4 +23,14 @@ router.get('/welcome', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'welcome.html'));
 });
 
+router.get('/api/schedule', async (req, res) => {
+    try {
+        const schedule = await Subject.find(); // Получите расписание из базы данных
+        res.json(schedule);
+    } catch (error) {
+        console.error('Error fetching schedule:', error);
+        res.status(500).json({ message: 'Error fetching schedule' });
+    }
+});
+
 module.exports = router;
