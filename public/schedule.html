@@ -51,36 +51,34 @@
             <th>Room</th>
             <th>Time</th>
             <th>Day</th>
-            <th>Teacher</th> <!-- Добавляем колонку для учителя -->
+            <th>Teacher</th>
         </tr>
         </thead>
-        <tbody id="scheduleTableBody">
-        <!-- Данные будут загружены с помощью JavaScript -->
+        <tbody id="schedule-body">
+        <!-- Schedule will be populated here by JavaScript -->
         </tbody>
     </table>
 </div>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        fetch('/api/schedule')
-            .then(response => response.json())
-            .then(data => {
-                const tableBody = document.getElementById('scheduleTableBody');
-                data.forEach(subject => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                            <td>${subject.subject}</td>
-                            <td>${subject.room}</td>
-                            <td>${subject.time}</td>
-                            <td>${subject.day}</td>
-                            <td>${subject.teacher}</td> <!-- Добавляем значение учителя -->
-                        `;
-                    tableBody.appendChild(row);
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching schedule:', error);
-            });
-    });
+    async function fetchSchedule() {
+        const response = await fetch('/api/schedule');
+        const data = await response.json();
+        const scheduleBody = document.getElementById('schedule-body');
+        scheduleBody.innerHTML = '';
+        data.forEach(subject => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                    <td>${subject.subject}</td>
+                    <td>${subject.room}</td>
+                    <td>${subject.time}</td>
+                    <td>${subject.day}</td>
+                    <td>${subject.teacher}</td>
+                `;
+            scheduleBody.appendChild(row);
+        });
+    }
+
+    fetchSchedule();
 </script>
 </body>
 </html>

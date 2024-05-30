@@ -2,7 +2,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const path = require('path');
-
+const cookieParser = require('cookie-parser');
+const authMiddleware = require('./middleware/authMiddleware');
+const roleMiddleware = require('./middleware/roleMiddleware');
+const authRouter = require('./authRouter');
+const User = require('./models/User');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -17,55 +21,63 @@ mongoose.connect('mongodb+srv://qwerty:qwerty123@cluster0.xzyxfeu.mongodb.net/au
 });
 
 // Модель данных для предметов
-const Subject = mongoose.model('Subject', {
+const subjectSchema = new mongoose.Schema({
     subject: String,
     room: String,
     time: String,
     day: String,
-    teacher: String, // Добавляем поле учителя
-    course: String
+    teacher: String,
+    course: String,
+    student: String // новое поле для хранения имени студента
 });
+
+const Subject = mongoose.model('Subject', subjectSchema);
 
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.set('view engine', 'ejs');
 
 // Роутеры
-const authRouter = require('./authRouter');
-app.use("/auth", authRouter);
+app.use('/auth', authRouter);
 
-app.post('/auth/subjects', async (req, res) => {
-    const selectedSubjects = req.body;
-    console.log('Selected Subjects:', selectedSubjects); // Выводим в консоль для отладки
-
-    try {
-        // Сохраняем выбранные предметы в базе данных MongoDB
-        for (const subject of selectedSubjects) {
-            await Subject.create({
-                subject: subject.subject,
-                room: subject.room,
-                time: subject.time,
-                day: subject.day,
-                teacher: subject.teacher,
-                course: subject.course // Убедитесь, что это поле правильно передается из запроса
-            });
-        }
-
-        res.status(200).json({ message: 'Selected subjects saved successfully' });
-    } catch (error) {
-        console.error('Error saving selected subjects:', error);
-        res.status(500).json({ message: 'Error saving selected subjects' });
-    }
+app.post('/auth/subjects', (req, res) => {
+    const { student, subjects } = req.body;
+    saveScheduleForStudent(student, subjects)
+        .then(() => res.status(200).send('Subjects submitted successfully'))
+        .catch(error => {
+            console.error('Error saving subjects:', error);
+            res.status(500).send('Error saving subjects');
+        });
 });
 
-// Обработчик GET запроса на страницу расписания
-app.get('/schedule', async (req, res) => {
-    try {
-        // Получаем последние три записи из базы данных
-        const subjects = await Subject.find().sort({ _id: -1 }).limit(3);
+function saveScheduleForStudent(student, subjects) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            for (const subject of subjects) {
+                await Subject.create({
+                    subject: subject.subject,
+                    room: subject.room,
+                    time: subject.time,
+                    day: subject.day,
+                    teacher: subject.teacher,
+                    course: subject.course,
+                    student: student // сохраняем имя студента
+                });
+            }
+            resolve();
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
 
-        // Отправляем HTML-страницу и данные для таблицы
+// Обработчик GET запроса на страницу расписания
+app.get('/schedule', authMiddleware, async (req, res) => {
+    try {
+        const subjects = await Subject.find().sort({ _id: -1 }).limit(3);
         res.sendFile(path.join(__dirname, 'public', 'schedule.html'));
     } catch (error) {
         console.error('Error fetching subjects:', error);
@@ -74,7 +86,7 @@ app.get('/schedule', async (req, res) => {
 });
 
 // Обработчик для получения данных расписания
-app.get('/api/schedule', async (req, res) => {
+app.get('/api/schedule', authMiddleware, async (req, res) => {
     try {
         const subjects = await Subject.find().sort({ _id: -1 }).limit(3);
         res.json(subjects);
@@ -84,16 +96,29 @@ app.get('/api/schedule', async (req, res) => {
     }
 });
 
+// Обработчик для получения расписания студента
+app.get('/admin/schedule', authMiddleware, async (req, res) => {
+    const student = req.query.student;
+    console.log('Fetching schedule for student:', student);
+
+    try {
+        const subjects = await Subject.find({ student: student });
+        res.json(subjects);
+    } catch (error) {
+        console.error('Error fetching subjects:', error);
+        res.status(500).json({ message: 'Error fetching subjects' });
+    }
+});
 
 // Страница приветствия
-app.get('/welcome', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'welcome.html'));
+app.get('/welcome', authMiddleware, async (req, res) => {
+    const users = await User.find({ roles: 'USER' }).select('username');
+    res.render('welcome', { users });
 });
 
 // Админ маршруты
-app.get('/api/admin/subjects', async (req, res) => {
+app.get('/api/admin/subjects', authMiddleware, roleMiddleware(["ADMIN"]), async (req, res) => {
     try {
-        // Получаем все записи
         const subjects = await Subject.find().sort({ _id: -1 }).limit(100);
         res.json(subjects);
     } catch (error) {
@@ -102,12 +127,11 @@ app.get('/api/admin/subjects', async (req, res) => {
     }
 });
 
-app.put('/api/admin/subject/:id', async (req, res) => {
+app.put('/api/admin/subject/:id', authMiddleware, roleMiddleware(["ADMIN"]), async (req, res) => {
     try {
         const subjectId = req.params.id;
         const updatedData = req.body;
 
-        // Обновляем запись в базе данных
         const updatedSubject = await Subject.findByIdAndUpdate(subjectId, updatedData, { new: true });
         res.json(updatedSubject);
     } catch (error) {
@@ -116,11 +140,10 @@ app.put('/api/admin/subject/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/admin/subject/:id', async (req, res) => {
+app.delete('/api/admin/subject/:id', authMiddleware, roleMiddleware(["ADMIN"]), async (req, res) => {
     try {
         const subjectId = req.params.id;
 
-        // Удаляем запись из базы данных
         await Subject.findByIdAndDelete(subjectId);
         res.status(200).json({ message: 'Subject deleted successfully' });
     } catch (error) {
